@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1020" />
+<title>Keuangan Bersama · Rachel &amp; Ferry</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💸</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- background aurora animasi -->
+<div class="aurora">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <div class="grain"></div>
+</div>
+
+<!-- splash -->
+<div id="splash">
+  <div class="splash-logo">💸</div>
+  <div class="splash-title">Keuangan Bersama</div>
+  <div class="splash-bar"><i></i></div>
+</div>
+
+<div class="phone">
+
+  <!-- ================= HEADER ================= -->
+  <header class="topbar">
+    <div class="hi">
+      <p class="greet" id="greet">Halo 👋</p>
+      <h1>Keuangan Bersama</h1>
+    </div>
+    <button class="icon-btn" id="btnRefresh" aria-label="Muat ulang">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+    </button>
+  </header>
+
+  <!-- ================= PAGE: BERANDA ================= -->
+  <main class="page active" id="page-beranda">
+
+    <section class="balance-card reveal">
+      <div class="shine"></div>
+      <p class="label">Saldo Bersama</p>
+      <h2 class="amount" id="saldo">Rp 0</h2>
+      <div class="mini-row">
+        <div class="mini in">
+          <span class="ico">↓</span>
+          <div>
+            <p>Masuk</p>
+            <b id="totalMasuk">Rp 0</b>
+          </div>
+        </div>
+        <div class="mini out">
+          <span class="ico">↑</span>
+          <div>
+            <p>Keluar</p>
+            <b id="totalKeluar">Rp 0</b>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="people reveal" style="--d:.06s">
+      <article class="person-card" data-person="Rachel">
+        <div class="avatar r">R</div>
+        <div class="pinfo">
+          <p class="pname">Rachel</p>
+          <b class="pnet" id="netRachel">Rp 0</b>
+          <div class="bar"><i id="barRachel"></i></div>
+          <small id="detRachel">↓ Rp 0 · ↑ Rp 0</small>
+        </div>
+      </article>
+      <article class="person-card" data-person="Ferry">
+        <div class="avatar f">F</div>
+        <div class="pinfo">
+          <p class="pname">Ferry</p>
+          <b class="pnet" id="netFerry">Rp 0</b>
+          <div class="bar"><i id="barFerry"></i></div>
+          <small id="detFerry">↓ Rp 0 · ↑ Rp 0</small>
+        </div>
+      </article>
+    </section>
+
+    <section class="block reveal" style="--d:.12s">
+      <div class="block-head">
+        <h3>Transaksi Terakhir</h3>
+        <button class="link" data-goto="riwayat">Lihat semua</button>
+      </div>
+      <div id="recentList" class="list"></div>
+    </section>
+
+    <div class="pad"></div>
+  </main>
+
+  <!-- ================= PAGE: RIWAYAT ================= -->
+  <main class="page" id="page-riwayat">
+    <section class="block">
+      <div class="search-wrap">
+        <svg class="s-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="search" type="search" placeholder="Cari keterangan / nama…" />
+      </div>
+
+      <div class="chips" id="chips">
+        <button class="chip active" data-filter="ALL">Semua</button>
+        <button class="chip" data-filter="MASUK">Masuk</button>
+        <button class="chip" data-filter="KELUAR">Keluar</button>
+        <button class="chip" data-filter="Rachel">Rachel</button>
+        <button class="chip" data-filter="Ferry">Ferry</button>
+      </div>
+
+      <section class="chart-card">
+        <div class="chart-head">
+          <h4>Grafik Keuangan</h4>
+          <div class="chart-toggle" id="chartToggle">
+            <button class="ct active" data-mode="bulan">6 Bulan</button>
+            <button class="ct" data-mode="hari">14 Hari</button>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span><i class="lg in"></i>Masuk</span>
+          <span><i class="lg out"></i>Keluar</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+        <div class="donut-row">
+          <div class="donut-box"><canvas id="donut"></canvas></div>
+          <div class="donut-info" id="donutInfo"></div>
+        </div>
+      </section>
+
+      <div class="sum-strip">
+        <div><p>Masuk</p><b id="fMasuk" class="green">Rp 0</b></div>
+        <div><p>Keluar</p><b id="fKeluar" class="red">Rp 0</b></div>
+        <div><p>Selisih</p><b id="fNet">Rp 0</b></div>
+      </div>
+
+      <div id="historyList" class="list"></div>
+    </section>
+    <div class="pad"></div>
+  </main>
+
+  <!-- ================= BOTTOM NAV ================= -->
+  <nav class="tabbar">
+    <button class="tab active" data-goto="beranda">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      <span>Beranda</span>
+    </button>
+
+    <button class="fab" id="btnAdd" aria-label="Tambah transaksi">
+      <span class="fab-ring"></span>
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <button class="tab" data-goto="riwayat">
+      <svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>Riwayat</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ================= SHEET INPUT ================= -->
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Input transaksi">
+  <div class="grab"></div>
+  <h3 class="sheet-title" id="sheetTitle">Transaksi Baru</h3>
+
+  <form id="form" autocomplete="off">
+    <div class="seg" id="segTipe">
+      <span class="seg-pill"></span>
+      <button type="button" class="seg-btn active" data-tipe="MASUK">↓ Masuk</button>
+      <button type="button" class="seg-btn" data-tipe="KELUAR">↑ Keluar</button>
+    </div>
+
+    <label class="fl">Nominal</label>
+    <div class="money">
+      <span>Rp</span>
+      <input id="nominal" inputmode="numeric" placeholder="0" required />
+    </div>
+
+    <label class="fl">Keterangan</label>
+    <input id="keterangan" class="inp" placeholder="cth: Belanja bulanan, Gaji, Bensin…" maxlength="120" required />
+
+    <label class="fl">Atas Nama</label>
+    <div class="who" id="who">
+      <button type="button" class="who-btn active" data-nama="Rachel"><i class="av r">R</i>Rachel</button>
+      <button type="button" class="who-btn" data-nama="Ferry"><i class="av f">F</i>Ferry</button>
+    </div>
+
+    <label class="fl">Tanggal</label>
+    <input id="tanggal" class="inp" type="date" required />
+
+    <button class="submit" id="btnSubmit" type="submit">
+      <span class="txt">Simpan Transaksi</span>
+      <span class="spin"></span>
+    </button>
+    <button class="danger" id="btnDelete" type="button" hidden>Hapus Transaksi</button>
+  </form>
+</section>
+
+<div class="sync-dot" id="syncDot"><i></i>Menyinkronkan…</div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a22084da8896fda8',t:'MTc4NTIwNjQyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

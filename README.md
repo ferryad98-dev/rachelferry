@@ -22,6 +22,9 @@ keuangan-bersama/
 
 ---
 
+> 💻 **Mau update lewat CMD?** Buka **[TUTORIAL-CMD.md](TUTORIAL-CMD.md)** — khusus Windows,
+> lengkap dengan skrip `update.bat` (tinggal klik 2×).
+
 > 🚀 **Baru pertama kali / ingin dituntun langkah demi langkah?**
 > Buka **[PANDUAN.md](PANDUAN.md)** — panduan lengkap dari nol sampai online, termasuk screenshot alur klik & troubleshooting.
 

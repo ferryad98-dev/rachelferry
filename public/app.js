@@ -7,6 +7,30 @@ const CFG = window.APP_CONFIG || {};
 const API = (CFG.API_URL || '').trim();
 const LS_KEY = 'kb_cache_v1';
 
+/* Penyimpanan aman: localStorage bisa diblokir (mode privat / cookie pihak
+   ketiga dimatikan / WebView). Jangan sampai aplikasi ikut mati. */
+const Store = (() => {
+  let ok = false;
+  try {
+    const t = '__kb__';
+    window.localStorage.setItem(t, '1');
+    window.localStorage.removeItem(t);
+    ok = true;
+  } catch (e) { ok = false; }
+  let mem = null;                       // cadangan di memori
+  return {
+    tersedia: ok,
+    get() {
+      if (ok) { try { return window.localStorage.getItem(LS_KEY); } catch (e) {} }
+      return mem;
+    },
+    set(v) {
+      mem = v;
+      if (ok) { try { window.localStorage.setItem(LS_KEY, v); } catch (e) {} }
+    }
+  };
+})();
+
 let DATA = [];
 let tipe = 'MASUK';
 let nama = 'Rachel';
@@ -142,7 +166,7 @@ function showSync(on) {
 /** Tampilkan cache instan (tanpa skeleton) lalu segarkan dari server. */
 function hydrateFromCache() {
   try {
-    const c = localStorage.getItem(LS_KEY);
+    const c = Store.get();
     if (!c) return false;
     const arr = JSON.parse(c);
     if (!Array.isArray(arr) || !arr.length) return false;
@@ -162,18 +186,24 @@ async function loadData({ silent, quiet } = {}) {
 
   const hasView = DATA.length > 0;
   if (!silent && !hasView) renderSkeleton();
-  if (hasView) showSync(true);
+  showSync(true);
 
   try {
     const fresh = await apiGet({ action: 'list' });
     const changed = JSON.stringify(fresh) !== JSON.stringify(DATA);
     DATA = fresh;
-    localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+    Store.set(JSON.stringify(DATA));
     if (changed || !hasView) renderAll();
   } catch (err) {
     if (!hasView) {
       DATA = [];
       renderAll();
+      const box = $('#recentList');
+      if (box) box.innerHTML =
+        `<div class="empty"><span class="e-ico">📡</span>
+         <p><b>Belum tersambung</b></p>
+         <p>${escapeHtml(err.message)}</p>
+         <button class="retry" id="btnRetry">Coba Lagi</button></div>`;
       if (!quiet) toast(err.message, 'err');
     } else if (!quiet) {
       toast('Gagal menyegarkan — data tersimpan ditampilkan', 'err');
@@ -183,17 +213,58 @@ async function loadData({ silent, quiet } = {}) {
   }
 }
 
-/* auto-sync: saat tab kembali aktif & saat koneksi pulih */
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) loadData({ silent: true, quiet: true });
-});
-window.addEventListener('online', () => loadData({ silent: true, quiet: true }));
-window.addEventListener('focus', () => {
-  if (Date.now() - (window.__lastSync || 0) > 20000) {
-    window.__lastSync = Date.now();
+/* ---------------- REALTIME ----------------
+   Polling berkala saat tab aktif, berhenti saat tab tersembunyi
+   (hemat kuota & baterai), lalu langsung sinkron begitu kembali. */
+const POLL_MS = 15000;
+let pollTimer = null;
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(() => {
+    if (document.hidden || !navigator.onLine) return;
+    if ($('#sheet').classList.contains('show')) return;  // jangan ganggu saat mengisi form
     loadData({ silent: true, quiet: true });
-  }
+  }, POLL_MS);
+}
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopPolling(); return; }
+  loadData({ silent: true, quiet: true });
+  startPolling();
 });
+window.addEventListener('online', () => {
+  toast('Kembali online — menyinkronkan…', 'ok');
+  loadData({ silent: true, quiet: true });
+  startPolling();
+});
+window.addEventListener('offline', () => {
+  stopPolling();
+  toast('Tidak ada koneksi', 'err');
+});
+
+/* tarik layar ke bawah untuk menyegarkan (pull-to-refresh) */
+(function pullToRefresh() {
+  let y0 = null, aktif = false;
+  const ambang = 70;
+  window.addEventListener('touchstart', (e) => {
+    if (window.scrollY <= 0 && !$('#sheet').classList.contains('show')) {
+      y0 = e.touches[0].clientY; aktif = true;
+    }
+  }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (!aktif) return;
+    if (e.touches[0].clientY - y0 > ambang) {
+      aktif = false;
+      showSync(true);
+      loadData({ silent: true, quiet: true }).then(() => toast('Data diperbarui', 'ok'));
+    }
+  }, { passive: true });
+  window.addEventListener('touchend', () => { aktif = false; y0 = null; });
+})();
 
 /* ---------------- RENDER ---------------- */
 function renderSkeleton() {
@@ -410,7 +481,7 @@ $('#form').addEventListener('submit', async (e) => {
       DATA.unshift(saved);
     }
     DATA.sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1));
-    localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+    Store.set(JSON.stringify(DATA));
     renderAll();
     closeSheet();
     toast(isEdit ? 'Perubahan tersimpan'
@@ -422,6 +493,11 @@ $('#form').addEventListener('submit', async (e) => {
   } finally {
     btn.classList.remove('loading');
   }
+});
+
+/* tombol coba lagi */
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'btnRetry') { renderSkeleton(); loadData({ quiet: false }); }
 });
 
 /* klik transaksi -> mode edit */
@@ -440,7 +516,7 @@ $('#btnDelete').addEventListener('click', async () => {
   try {
     await apiGet({ action: 'delete', id });
     DATA = DATA.filter(d => String(d.id) !== String(id));
-    localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+    Store.set(JSON.stringify(DATA));
     renderAll();
     closeSheet();
     toast('Transaksi dihapus', 'ok');
@@ -660,5 +736,4 @@ window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(dr
 document.body.classList.add('first-load');
 setTimeout(() => document.body.classList.remove('first-load'), 2000);
 hydrateFromCache();
-window.__lastSync = Date.now();
-loadData();
+loadData().then(startPolling);

@@ -78,13 +78,47 @@ function countTo(el, to) {
 }
 
 /* ---------------- API ---------------- */
-async function apiGet(params) {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Apps Script kadang membalas halaman HTML / 404 sementara saat redirect
+ * ke script.googleusercontent.com. Ulangi otomatis beberapa kali.
+ */
+async function apiGet(params, tries = 3) {
   if (!API) throw new Error('API_URL belum diisi di config.js');
   const url = API + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url, { method: 'GET', redirect: 'follow' });
-  const j = await res.json();
-  if (!j.ok) throw new Error(j.error || 'Gagal');
-  return j.data;
+  let lastErr;
+
+  for (let i = 0; i < tries; i++) {
+    try {
+      const ctl = new AbortController();
+      const to = setTimeout(() => ctl.abort(), 20000);
+      const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctl.signal });
+      clearTimeout(to);
+
+      const txt = (await res.text()).trim();
+      if (!txt || txt[0] === '<') throw new Error('Server sibuk');
+
+      let j;
+      try { j = JSON.parse(txt); }
+      catch (e) { throw new Error('Server sibuk'); }
+
+      if (!j.ok) {
+        const msg = String(j.error || 'Gagal').replace(/^Error:\s*/, '');
+        const err = new Error(msg);
+        err.fromServer = true;   // error validasi -> jangan diulang
+        throw err;
+      }
+      return j.data;
+    } catch (e) {
+      lastErr = e;
+      if (e.fromServer) throw e;
+      if (i < tries - 1) await sleep(700 * (i + 1));
+    }
+  }
+  throw new Error(lastErr && lastErr.name === 'AbortError'
+    ? 'Koneksi lambat, coba lagi'
+    : (lastErr ? lastErr.message : 'Gagal terhubung'));
 }
 
 /* Data contoh — dipakai hanya jika API_URL belum diisi (mode pratinjau). */
@@ -524,6 +558,7 @@ function paintBars(cv, buckets, max, prog) {
   const { ctx, w, h } = setupCanvas(cv, 170);
   const padL = 34, padB = 20, padT = 8;
   const gh = h - padB - padT, gw = w - padL - 6;
+  if (gh <= 0 || gw <= 0) return;   // canvas belum punya ukuran
 
   // garis grid + label sumbu Y
   ctx.font = '9px "Plus Jakarta Sans", sans-serif';
@@ -545,14 +580,15 @@ function paintBars(cv, buckets, max, prog) {
     const cx = padL + slot * i + slot / 2;
     [['masuk', '#22e6a0', -1], ['keluar', '#ff6b8b', 1]].forEach(([k, col, dir]) => {
       const val = b[k]; if (!val) return;
-      const bh = (val / max) * gh * prog;
+      const bh = Math.max(0, (val / max) * gh * prog);
+      if (bh <= 0.5) return;
       const x = cx + dir * (gap / 2) - (dir < 0 ? bw : 0);
       const y = padT + gh - bh;
       const g = ctx.createLinearGradient(0, y, 0, padT + gh);
       g.addColorStop(0, col);
       g.addColorStop(1, col + '33');
       ctx.fillStyle = g;
-      const r = Math.min(3, bw / 2, bh / 2);
+      const r = Math.max(0, Math.min(3, bw / 2, bh / 2));
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(x, y, bw, bh, [r, r, 0, 0]);
       else ctx.rect(x, y, bw, bh);
